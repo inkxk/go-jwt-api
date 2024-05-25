@@ -7,10 +7,10 @@ type MainResponse struct {
 
 type RegisterResponse struct {
 	MainResponse
-	UserId uint `json:"user_id"`
+	UserId uint `json:"user_id,omitempty"`
 }
 
 type LoginResponse struct {
 	MainResponse
-	AccessToken string `json:"access_token"`
+	AccessToken string `json:"access_token,omitempty"`
 }
