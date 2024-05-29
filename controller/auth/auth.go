@@ -3,11 +3,15 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
+	"time"
 
 	"inkxk/jwt-api/model"
 	"inkxk/jwt-api/orm"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -57,7 +61,7 @@ func Register(c *gin.Context) {
 		responseBody.Message = "registered failed"
 	}
 
-	c.JSON(responseBody.Status, requestBody)
+	c.JSON(responseBody.Status, responseBody)
 }
 
 func Login(c *gin.Context) {
@@ -80,9 +84,21 @@ func Login(c *gin.Context) {
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(requestBody.Password))
 	if err == nil {
+		// gen access key
+		claims := &jwt.MapClaims{
+			"iss": "issuer",
+			"exp": time.Now().Add(time.Hour * 24).Unix(),
+			"data": map[string]string{
+				"user_id": strconv.FormatUint(uint64(user.ID), 10),
+			},
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, _ := token.SignedString(os.Getenv("JWT_SECRET_KEY"))
+
 		responseBody.Status = http.StatusOK
 		responseBody.Message = "login success"
-		responseBody.AccessToken = user.Password
+		responseBody.AccessToken = tokenString
 	} else {
 		responseBody.Status = http.StatusUnauthorized
 		responseBody.Message = "invalid password"
