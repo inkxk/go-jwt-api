@@ -15,19 +15,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type RegisterBody struct {
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
-type LoginBody struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
 func Register(c *gin.Context) {
-	var requestBody RegisterBody
+	var requestBody model.RegisterRequest
 	var responseBody model.RegisterResponse
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -65,7 +54,7 @@ func Register(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	var requestBody LoginBody
+	var requestBody model.LoginRequest
 	var responseBody model.LoginResponse
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -85,20 +74,28 @@ func Login(c *gin.Context) {
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(requestBody.Password))
 	if err == nil {
 		// gen access key
-		claims := &jwt.MapClaims{
-			"iss": "issuer",
-			"exp": time.Now().Add(time.Hour * 24).Unix(),
-			"data": map[string]string{
-				"user_id": strconv.FormatUint(uint64(user.ID), 10),
+		claims := model.AccessTokenClaim{
+			UserId: strconv.FormatUint(uint64(user.ID), 10),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+				NotBefore: jwt.NewNumericDate(time.Now()),
+				Issuer:    "go-jwt-api/login",
 			},
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, _ := token.SignedString(os.Getenv("JWT_SECRET_KEY"))
+		tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+		if err != nil {
+			responseBody.Status = http.StatusInternalServerError
+			responseBody.Message = "generate access token error"
+			fmt.Printf("generate access token error: %s", err)
+		} else {
+			responseBody.Status = http.StatusOK
+			responseBody.Message = "login success"
+			responseBody.AccessToken = tokenString
 
-		responseBody.Status = http.StatusOK
-		responseBody.Message = "login success"
-		responseBody.AccessToken = tokenString
+		}
 	} else {
 		responseBody.Status = http.StatusUnauthorized
 		responseBody.Message = "invalid password"
