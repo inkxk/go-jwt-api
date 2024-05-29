@@ -19,5 +19,5 @@ type LoginResponse struct {
 
 type GetAllUserResponse struct {
 	MainResponse
-	Users []orm.User
+	Users []orm.User `json:"users,omitempty"`
 }

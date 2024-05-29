@@ -94,7 +94,6 @@ func Login(c *gin.Context) {
 			responseBody.Status = http.StatusOK
 			responseBody.Message = "login success"
 			responseBody.AccessToken = tokenString
-
 		}
 	} else {
 		responseBody.Status = http.StatusUnauthorized
