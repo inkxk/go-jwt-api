@@ -1,53 +1,41 @@
 package user
 
 import (
-	"fmt"
 	"inkxk/jwt-api/model"
 	"inkxk/jwt-api/orm"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func GetAllUsers(c *gin.Context) {
 	var responseBody model.GetAllUserResponse
 	var users []orm.User
 
-	// get bearer token
-	authorization := c.Request.Header.Get("Authorization")
-	tokenString := strings.Replace(authorization, "Bearer ", "", 1)
+	// query users
+	orm.Db.Find(&users)
 
-	// validate token
-	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
-	})
+	// success response
+	responseBody.Status = http.StatusOK
+	responseBody.Message = "query success"
+	responseBody.Users = users
 
-	// validate claim
-	if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		// query users
-		orm.Db.Find(&users)
+	c.JSON(responseBody.Status, responseBody)
+}
 
-		// success response
-		responseBody.Status = http.StatusOK
-		responseBody.Message = "registerd success"
-		responseBody.Users = users
-	} else {
-		responseBody.Status = http.StatusUnauthorized
-		responseBody.Message = "invalid token"
-	}
+func GetUserProfile(c *gin.Context) {
+	var responseBody model.GetUserProfileResponse
+	var user orm.User
 
-	// if !token.Valid {
-	// 	responseBody.Status = http.StatusInternalServerError
-	// 	responseBody.Message = "jwt parse token error"
-	// 	c.JSON(responseBody.Status, responseBody)
-	// 	return
-	// }
+	userId := c.MustGet("user_id").(string)
+
+	// query users
+	orm.Db.First(&user, userId)
+
+	// success response
+	responseBody.Status = http.StatusOK
+	responseBody.Message = "query success"
+	responseBody.User = user
 
 	c.JSON(responseBody.Status, responseBody)
 }

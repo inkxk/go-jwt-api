@@ -21,3 +21,8 @@ type GetAllUserResponse struct {
 	MainResponse
 	Users []orm.User `json:"users,omitempty"`
 }
+
+type GetUserProfileResponse struct {
+	MainResponse
+	User orm.User `json:"user,omitempty"`
+}

@@ -3,6 +3,7 @@ package main
 import (
 	AuthController "inkxk/jwt-api/controller/auth"
 	UserController "inkxk/jwt-api/controller/user"
+	"inkxk/jwt-api/middleware"
 	"inkxk/jwt-api/orm"
 	"log"
 
@@ -28,7 +29,10 @@ func main() {
 	// route
 	r.POST("/register", AuthController.Register)
 	r.POST("/login", AuthController.Login)
-	r.GET("/user/get-all", UserController.GetAllUsers)
+
+	authorized := r.Group("/user", middleware.Token())
+	authorized.GET("/get-all", UserController.GetAllUsers)
+	authorized.GET("/get-profile", UserController.GetUserProfile)
 
 	// listen and serve on 0.0.0.0:8080
 	r.Run()
